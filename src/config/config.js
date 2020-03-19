@@ -2,7 +2,7 @@ module.exports = {
   requestURL:
     process.env.NODE_ENV === "production"
       ? "/"                           //请求的生产URL
-      : "https://qcadmin.qsebao.com", //开发url
+      : "/", //开发url
   downloadURL: process.env.NODE_ENV === "production" ? "/" : "/",  //下载URL
 
   logo: 'https://gw.alipayobjects.com/zos/rmsportal/KDpgvguMpGfqaHPjicRK.svg',

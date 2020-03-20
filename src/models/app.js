@@ -117,8 +117,9 @@ export default {
       } else {
       }
     },
-    *siderSlected ({ poayload = {} }, { put }) {
-      yield put({ type: "onSiderSlected", poayload });
+    *siderSlected ({ poayload = {} }, { put, select }) {
+      const locationPathname = yield select(({ app }) => app.locationPathname);
+      yield put({ type: "onSiderSlected", payload: { ...poayload, locationPathname } });
     }
   },
   reducers: {
@@ -145,6 +146,7 @@ export default {
 
     // 重置菜单面包屑
     resetBteadList (state) {
+      // console.log('state:',state)
       return {
         ...state,
         breadList: [{
@@ -156,6 +158,7 @@ export default {
 
     // 删除面包屑最后一位
     setLastBreadList (state, { payload }) {
+      console.log('state:', state)
       state.breadList.splice(state.breadList.length - 2, 2);
       return {
         ...state,
@@ -172,101 +175,69 @@ export default {
 
     // 选择侧边导航栏
     onSiderSlected (state, { payload }) {
-      const { location } = window;
-      if (location.pathname) {
-        const urlArray = location.pathname.split("/");
-        let current = [];
-        if (urlArray.length < 3) {
-          if (urlArray.length === 2) {
 
-            if (!menuConfig.items) {
-              menuConfig.forEach(item => {
-                if ('/' +urlArray[1] === item.key) {
-                  // 查询判断是否已经有这个面包屑
-                  current = [{
-                    key: item.key,
-                    icon: item.icon,
-                    text: item.name
-                  }]
-
-                }
-              });
+      const { locationPathname } = payload;
+      let current = [],
+        menu = {},
+        type = locationPathname && '/' + locationPathname.split('/')[1],
+        isDone = false;
+      menuConfig.forEach(menuType => {
+        //如果是一级菜单
+        if (!menuType.items) {
+          menuConfig.forEach(item => {
+            if (locationPathname === item.path) {
+              current = [{
+                key: item.key,
+                icon: item.icon,
+                text: item.name
+              }];
+              menu = {
+                selectedItem: [locationPathname],
+              }
             }
-
-            return {
-              ...state,
-              breadList: current,
-              menu: {
-                selectedItem: [ '/' +urlArray[1]],
-              }
-            };
-          }
-          return {
-            ...state,
-            menu: {
-              // selectedItem: ["/umcomfire"],
-              // selectedType: ["/plan"]
-            }
-          };
-        }
-        
-
-        let first = {};
-        let secound = null;
-        menuConfig.forEach(menuType => {
-          if (menuType.key) {
-            urlArray.forEach(url => {
-              if ("/" + url === menuType.key) {
-                first = {
-                  key: menuType.key,
-                  icon: menuType.icon,
-                  text: menuType.name,
-                }
-                current.push({
-                  key: menuType.key,
-                  icon: menuType.icon,
-                  text: menuType.name,
-                });
-              }
-              if (menuType.items) {
-                menuType.items.forEach(item => {
-                  if (location.pathname === menuType.key + item.path) {
-                    // 查询判断是否已经有这个面包屑
-
-                    if (!current.some(c => c.key === item.path + menuType.key)) {
-
-                      current.push({
-                        key: menuType.key + item.path,
-                        icon: "",
-                        text: item.title
-                      })
-                      secound = {
-                        key: menuType.key + item.path,
-                        icon: "",
-                        text: item.title
-                      }
-                    }
-                  }
-                });
-              }
-            });
-          }
-        });
-        if (secound) {
-          current = [first, secound]
+          });
         } else {
-          current = [first];
+          menuType.items.forEach(item => {
+            //当前是否为二级菜单
+            if (type === menuType.key) {
+              //当前二级菜单是否选中侧边栏
+              if (menuType.key + item.path === locationPathname) {
+                menu = {
+                  selectedType: [menuType.key],
+                  selectedItem: [locationPathname]
+                }
+                current = [
+                  {
+                    key: menuType.key,
+                    icon: menuType.icon,
+                    text: menuType.name
+                  },
+                  {
+                    key: locationPathname,
+                    icon: "",
+                    text: item.title
+                  },
+                ]
+                isDone = true;
+              } else if (!isDone) {
+                current = [
+                  {
+                    key: menuType.key,
+                    icon: menuType.icon,
+                    text: menuType.name
+                  },
+                ]
+              }
+            }
+
+          })
         }
-        return {
-          ...state,
-          current,
-          breadList: current,
-          menu: {
-            selectedItem: ["/" + urlArray[1] + "/" + urlArray[2]],
-            selectedType: ["/" + urlArray[1]]
-          }
-        };
-      }
+      })
+      return {
+        ...state,
+        breadList: current,
+        menu,
+      };
     }
   }
 };

@@ -44,6 +44,8 @@ const Sider = ({ dispatch, app }) => {
     }
   }, [dispatch])
 
+  
+
   const linkTo = () => {
     dispatch(routerRedux.push('/order/list'))
   }
@@ -110,8 +112,8 @@ const Sider = ({ dispatch, app }) => {
         inlineCollapsed={collapsed}
         // style={{ width: 210 }}
         defaultOpenKeys={selectedType}
-        // selectedKeys={selectedItem}
-        defaultSelectedKeys={selectedItem}
+        selectedKeys={selectedItem}
+        // defaultSelectedKeys={selectedItem}
         mode="inline"
         theme="dark"
         onClick={clickItem}

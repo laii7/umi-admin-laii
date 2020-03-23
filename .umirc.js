@@ -17,48 +17,50 @@ export default {
   },
 
   //di标识进入该页面需要的权限，如果不需要则设置id为[]
-  routes: [{
-    id: [],
-    path: '/',
-    // exact: true,
-    component: '../layouts/index',
-    routes: [
-      {
-        id: [0, 1, 2, 3, 4],
-        path: '/order/list',
-        exact: true,
-        component: '../pages/order/list/index'
-      },
-      {
-        id: [0, 1, 2, 3, 4],
-        path: '/order/detail',
-        exact: true,
-        component: '../pages/order/detail/index'
-      },
-     
-      {
-        id: [],
-        path: '/changepassword',
-        component: '../pages/user/changepassword/index',
-        exact: true,
-      },
-      {
-        id: [],
-        path: '/login',
-        component: '../pages/login/index',
-        exact: true,
-      },
-      {
-        // id: [],
-        path: '/401',
-        component: '../pages/error/401/index',
-      },
-      {
-        id: [],
-        component: '../pages/error/404/index'
-      },
-    ],
-  },
+  routes: [
+    {
+      id: [],
+      path: '/login',
+      component: '../pages/login/index',
+      exact: true,
+    },
+    {
+      id: [],
+      path: '/',
+      // exact: true,
+      component: '../layouts/index',
+      routes: [
+        {
+          id: [0, 1, 2, 3, 4],
+          path: '/order/list',
+          exact: true,
+          component: '../pages/order/list/index'
+        },
+        {
+          id: [0, 1, 2, 3, 4],
+          path: '/order/detail',
+          exact: true,
+          component: '../pages/order/detail/index'
+        },
+
+        {
+          id: [],
+          path: '/changepassword',
+          component: '../pages/user/changepassword/index',
+          exact: true,
+        },
+
+        {
+          // id: [],
+          path: '/401',
+          component: '../pages/error/401/index',
+        },
+        {
+          id: [],
+          component: '../pages/error/404/index'
+        },
+      ],
+    },
 
 
   ],

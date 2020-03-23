@@ -9,9 +9,8 @@ import { message } from 'antd';
 import { routerRedux } from "dva/router";
 
 import umirc from '../../.umirc';
-
 //引用真实路由
-const { routes } = umirc.routes[0];
+const { routes } = umirc;
 
 // 检索当前权限下可进行的操作
 export const canOperate = (id) => {
@@ -25,34 +24,46 @@ export const canOperate = (id) => {
   }
 }
 
+const validPermission = (route, pathname) => {
+  let flag = true;
+  const userType = JSON.parse(window.localStorage.getItem('USER_TYPE') || '-1');
+  if (route.path === pathname) {
+    if (!route.id || route.id.length === 0) {
+      flag = true
+    } else {
+      flag = route.id.includes(userType);
+    }
+  }
+  return flag;
+}
+
 // 检索当前权限下可跳转的页面
 export const canJump = (pathname = '') => new Promise((resolve) => {
   if (!pathname) resolve(true);
-  const userType = JSON.parse(window.localStorage.getItem('USER_TYPE') || '-1');
   let flag = true;
   if (allow.includes(pathname)) {
     resolve(true);
   }
-
   routes.forEach(item => {
-    if (item.path === pathname) {
-      if (!item.id || item.id.length === 0) {
-        flag = true
-      } else {
-        flag = item.id.includes(userType);
-      }
+    //如果是顶层
+    if (!item.routes) {
+      flag = validPermission(item, pathname)
+    } else {
+      //如果是第二层
+      item.routes.forEach(child => {
+        flag = validPermission(child, pathname)
+      })
     }
   })
   resolve(flag);
 });
-
 // 检索当前权限下可展示的菜单项
 export const canShowMenu = (items, step) => {
   if (!items) {
     return true;
   }
   let idList = [];
-  
+
   if (step === 1) {
     if (items.items) {
       items.items.forEach(it => {
@@ -192,16 +203,21 @@ export const getFile = (fileUrl) => {
   }))
 }
 
-// 校验用户凭证
-export const verifyToken = async () => {
+/**
+ * 校验用户凭证
+ * @param {*} first  是否为第一次登录
+ */
+export const verifyToken = async (first = true) => {
 
   let token = queryString.parse(localStorage.getItem('token') || {});
 
   if (!token || !token.token) {
     window.g_app._store.dispatch(routerRedux.push('/login'))
     window.localStorage.clear();
-    message.error('登录失效，请重新登录')
-    return Promise.reject('登录失效，请重新登录');
+    if (!first) {
+      message.error('登录失效，请重新登录1')
+    }
+    return Promise.reject('登录失效，请重新登2录');
   }
   const { expire_at } = token;
   const now = new Date().getTime();
@@ -210,8 +226,8 @@ export const verifyToken = async () => {
   if ((expire_at * 1 - now) < 200000 && (expire_at * 1 - now) > 0) {
     await refreshToken();
     token = queryString.parse(localStorage.getItem('USER_AUTH') || {});
-    // 登录超时
   }
+   // 登录超时
   if ((expire_at * 1 < now)) {
     window.g_app._store.dispatch(routerRedux.push('/login'))
     window.localStorage.clear();

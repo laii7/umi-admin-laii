@@ -10,6 +10,7 @@ export default {
   namespace: "app",
   state: {
     collapsed: false,
+    locationPathname: '',
     breadList: [
       {
         icon: "",
@@ -44,7 +45,11 @@ export default {
           }
         });
         if (location.pathname === '/') {
-          dispatch(routerRedux.push('/order/list'))
+          verifyToken(true).then(res => {
+            if (res) {
+              dispatch(routerRedux.push('/order/list'))
+            }
+          });
         }
       });
     },
@@ -81,25 +86,6 @@ export default {
     *queryPermission ({ poayload = {} }, { put, call }) {
       const { data } = yield call(getMyPermission, poayload);
       window.localStorage.setItem('USER_TYPE', data + '')
-      // const { permissions, roles } = data || [];
-      // // 序列化到本地，防止用户会翻看，只序列化id
-      // const permissionsArray = permissions.map(item => {
-      //   return item.id
-      // })
-      // // 序列化到本地，只序列化角色名字
-      // const rolName = roles.map(role => {
-      //   return role.name
-      // })
-
-      // if (permissionsArray.length === 0) {
-      //   yield put(routerRedux.replace("/login"));
-      //   window.localStorage.clear();
-      //   return;
-      // } else {
-      //   window.localStorage.setItem('PER', JSON.stringify(permissionsArray));
-      //   window.localStorage.setItem('ROL', JSON.stringify(rolName))
-      // }
-      // yield put({ type: 'setPermissionData', payload: data })
 
     },
     // 注销登录

@@ -1,29 +1,40 @@
 import * as loginService from "@services/login";
 import queryString from "query-string";
 import { routerRedux } from "dva/router";
-import { getMyPermission } from "@services/permission";
+import { verifyToken } from '@utils/utils';
 
-const {loginByPassword } = loginService;
+
+const { loginByPassword } = loginService;
+
+const delay = (ms) => new Promise((resolve) => {
+  setTimeout(resolve, ms);
+});
+
 export default {
   namespace: "login",
   state: {},
   subscriptions: {
     setup ({ dispatch, history }) {
-      history.listen(location => {
-        if (location.pathname === "/login") {
-          if (window.localStorage.getItem("token")) {
-            dispatch(routerRedux.push("/order/list"));
-          }
+      dispatch({ type: 'queryListen' }).then(isListen => {
+        if (!isListen) {
+          dispatch({ type: 'app/changeListen' })
+          history.listen(location => {
+            const { pathname } = location;
+            if (pathname !== '/login') {
+              verifyToken().then(res => {
+                if (res) {
+                  dispatch({ type: "app/checkRouter", payload: pathname })
+                }
+              }).then(() => {
+                dispatch({ type: "app/resetBteadList" });
+                dispatch({ type: "app/siderSlected" });
+              });
+            }
+          })
         }
-      });
+      })
+
     },
-    setupHistory ({ dispatch, history }) {
-      history.listen(location => {
-        dispatch({
-          type: "siderSlected"
-        });
-      });
-    }
   },
   effects: {
     // 通过账号密码登录
@@ -36,16 +47,26 @@ export default {
         expire_at: data.expire_in * 1000 + Date.parse(new Date()),
       });
       const userinfo = queryString.stringify(data.user_data);
-      window.localStorage.setItem("userToken", data.access_token);
       window.localStorage.setItem("token", token);
       window.localStorage.setItem("userinfo", userinfo);
 
-      const resu = yield call(getMyPermission);
-      window.localStorage.setItem('USER_TYPE', resu.data + '')
+      yield put({ type: 'app/queryPermission' });
+
+      yield call(delay, 1000);
 
       yield put(routerRedux.push("/order/list"));
+      yield put({ type: "app/siderSlected" });
+
+
 
     },
+
+    //查询是否已在app做过全局路由监听
+    *queryListen ({ payload = {} }, { call, put, select }) {
+      const isListen = yield select(({ app }) => app.isListen);
+      return isListen
+    }
+
   },
   reducers: {}
 };

@@ -2,103 +2,12 @@
 // 如果使用createBrowserHistory
 import creatHistory from 'history/createBrowserHistory';
 // import routes from './routes';
-import { allow } from '@config/config';
+
 import queryString from "query-string";
 import { refreshToken } from '@services/login';
 import { message } from 'antd';
 import { routerRedux } from "dva/router";
 
-import umirc from '../../.umirc';
-//引用真实路由
-const { routes } = umirc;
-
-// 检索当前权限下可进行的操作
-export const canOperate = (id) => {
-  const userType = JSON.parse(window.localStorage.getItem('USER_TYPE') || '-1');
-  if (typeof id === 'number') {
-    return userType * 1 === id;
-  } else {
-    return id.some(item => {
-      return userType * 1 === item * 1;
-    })
-  }
-}
-
-const validPermission = (route, pathname) => {
-  let flag = true;
-  const userType = JSON.parse(window.localStorage.getItem('USER_TYPE') || '-1');
-  if (route.path === pathname) {
-    if (!route.id || route.id.length === 0) {
-      flag = true
-    } else {
-      flag = route.id.includes(userType);
-    }
-  }
-  return flag;
-}
-
-// 检索当前权限下可跳转的页面
-export const canJump = (pathname = '') => new Promise((resolve) => {
-  if (!pathname) resolve(true);
-  let flag = true;
-  if (allow.includes(pathname)) {
-    resolve(true);
-  }
-  routes.forEach(item => {
-    //如果是顶层
-    if (!item.routes) {
-      flag = validPermission(item, pathname)
-    } else {
-      //如果是第二层
-      item.routes.forEach(child => {
-        flag = validPermission(child, pathname)
-      })
-    }
-  })
-  resolve(flag);
-});
-// 检索当前权限下可展示的菜单项
-export const canShowMenu = (items, step) => {
-  if (!items) {
-    return true;
-  }
-  let idList = [];
-
-  if (step === 1) {
-    if (items.items) {
-      items.items.forEach(it => {
-        idList = [...idList, ...it.id]
-      })
-      if (!idList.length) {
-        return 1;
-      }
-    } else {
-      idList = [...items.id]
-      if (!idList.length) {
-        return 2;
-      }
-    }
-
-
-  } else {
-    idList = [...items]
-  }
-  const userType = JSON.parse(window.localStorage.getItem('USER_TYPE') || '-1');
-  if (idList.includes(userType)) {
-    if (!items.items) {
-      return 2
-    } else {
-      return 1
-    }
-  } else {
-    return false;
-  }
-}
-// 检索当前权限下可展示的菜单分类
-export const canShowMenuType = (id = []) => {
-  const userType = JSON.parse(window.localStorage.getItem('USER_TYPE') || '-1');
-  return id.includes(userType)
-}
 
 export function formatDate (time) {
   var date = new Date(time);
@@ -144,6 +53,13 @@ export const redirectTo = (url) => {
   history.replace(url);
 }
 
+export const logout = () => {
+  window.localStorage.clear();
+  window.g_app._store.dispatch(routerRedux.push('/login'))
+}
+
+
+
 
 /**
  * 图片链接转base64
@@ -175,7 +91,6 @@ export const getBase64 = (imgUrl) => {
     }
     xhr.send();
   }))
-
 }
 
 /**
@@ -212,12 +127,18 @@ export const verifyToken = async (first = true) => {
   let token = queryString.parse(localStorage.getItem('token') || {});
 
   if (!token || !token.token) {
-    window.g_app._store.dispatch(routerRedux.push('/login'))
+
     window.localStorage.clear();
+    // 使用promise异步队列保证这个effect是在返回之后执行
+    Promise.resolve().then(()=>{
+      window.g_app._store.dispatch(routerRedux.push('/login'))
+    })
+    // window.location.href = '/login'
+   
     if (!first) {
-      message.error('登录失效，请重新登录1')
+      message.error('登录失效，请重新登录')
     }
-    return Promise.reject('登录失效，请重新登2录');
+    return Promise.reject('登录失效，请重新登录');
   }
   const { expire_at } = token;
   const now = new Date().getTime();
@@ -225,15 +146,44 @@ export const verifyToken = async (first = true) => {
   // 刷新token
   if ((expire_at * 1 - now) < 200000 && (expire_at * 1 - now) > 0) {
     await refreshToken();
-    token = queryString.parse(localStorage.getItem('USER_AUTH') || {});
   }
-   // 登录超时
+  // 登录超时
   if ((expire_at * 1 < now)) {
-    window.g_app._store.dispatch(routerRedux.push('/login'))
+
     window.localStorage.clear();
+     // 使用promise异步队列保证这个effect是在返回之后执行
+    Promise.resolve().then(()=>{
+      window.g_app._store.dispatch(routerRedux.push('/login'))
+    })
+   
     message.error('登录失效，请重新登录')
     return Promise.reject('登录失效，请重新登录');
   }
+  return true
+}
+
+/**
+ * 下载文件
+ * @param res 请求响应
+ * @returns boolean
+ */
+export const downloadFile = (res) => {
+  const has = res.headers['content-type'].includes('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  if (!has) { return false };
+
+  const fileName = decodeURI(res.headers["content-disposition"]
+    .split(";")[1].split('"')[1])
+  // const fileName =decodeURI( res.headers["content-disposition"]
+  //       .split(";")[1]
+  //       .split("=")[1]
+  //       .split('"'));
+  let url = window.URL.createObjectURL(new Blob([res.data]));
+  let link = document.createElement("a");
+  link.style.display = "none";
+  link.href = url;
+  link.setAttribute("download", fileName);
+  document.body.appendChild(link);
+  link.click();
   return true
 }
 

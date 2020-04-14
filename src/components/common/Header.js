@@ -20,7 +20,7 @@ const Header = ({ logOut, app, dispatch }) => {
     </Menu>
   );
   const userinfo = queryString.parse(window.localStorage.getItem("userinfo") || '{}');
-  const name = userinfo.name || "轻松筹";
+  const name = userinfo.name || "laii7";
   const avatar = userinfo.avatar;
   const onToggleCollapsed = () => {
     dispatch({

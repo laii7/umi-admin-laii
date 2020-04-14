@@ -3,10 +3,9 @@ import * as userService from "@services/user";
 
 const {
   onChangePassword,
-
 } = userService;
 
-export default  {
+export default {
   namespace: 'user',
   state: {
 
@@ -15,7 +14,6 @@ export default  {
     setup ({ dispatch, history, loading }) {
       history.listen(location => {
         // const { pathname } = location;
-
       })
     }
   },

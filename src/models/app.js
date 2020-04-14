@@ -1,41 +1,28 @@
 import queryString from "query-string";
 import { routerRedux } from "dva/router";
 import { menuConfig } from "@config";
-import { canJump } from '@utils/utils';
+import { canJump, validRouter } from '@utils/permission';
 import { getMyPermission } from "@services/permission";
 import { verifyToken } from '@utils/utils';
-
 
 export default {
   namespace: "app",
   state: {
     collapsed: false,
+    isListen: false,
     locationPathname: '',
-    breadList: [
-      {
-        icon: "",
-        text: ""
-      }
-    ],
+    breadList: [{ icon: "", text: "" }],
     menu: {
-      // selectedItem: ["/unconfirm"],
-      // selectedType: ["/plan"]
+      // selectedItem: ["/list"],
+      // selectedType: ["/order"]
     },
-    // permissions: {},
+    permission: '-1',
+    userRouter: ['/login'],
     menuList: [],
   },
   subscriptions: {
-    // 设置权限
-    setPermission ({ dispatch, history }) {
-      const { location } = history;
-      if (location.pathname !== "/login") {
-        const flag = verifyToken();
-        if (flag === true) {
-          dispatch({ type: 'queryPermission', })
-        }
-      }
-    },
     setupHistory ({ dispatch, history }) {
+
       history.listen(location => {
         dispatch({
           type: "updateState",
@@ -44,55 +31,64 @@ export default {
             locationQuery: queryString.parse(location.search)
           }
         });
-        if (location.pathname === '/') {
-          verifyToken(true).then(res => {
-            if (res) {
-              dispatch(routerRedux.push('/order/list'))
-            }
-          });
-        }
       });
     },
 
-    setup ({ dispatch, history }) {
-
-      history.listen(location => {
-
-        const { pathname } = location;
-        if (pathname !== '/login') {
-          verifyToken().then(res => {
-            if (res) {
-              dispatch({ type: "canJump", payload: location.pathname });
-            }
-          });
+    // 设置权限
+    setPermission ({ dispatch, history }) {
+      const { location } = history;
+      if (location.pathname !== "/login") {
+        if (location.pathname === '/') {
+          dispatch(routerRedux.push("/order/list"));
         }
-        //  const flag = verifyToken();
-        dispatch({ type: "resetBteadList" });
+        verifyToken().then(res => {
+          if (res) {
+            //已登录则查询本人权限
+            dispatch({ type: 'queryPermission' }).then(() => {
+              dispatch({ type: 'changeListen' })
+              history.listen(local => {
+                if (local.pathname !== "/login") {
+                  verifyToken().then(() => {
+                    // dispatch({ type: "canJump", payload: local.pathname })
+                    dispatch({ type: "checkRouter", payload: local.pathname })
+                  })
+                  dispatch({ type: "resetBteadList" });
+                  dispatch({ type: "siderSlected" });
+                }
+              });
+            }).catch(() => {
+              window.location.href = '/login';
+            })
 
-        dispatch({ type: "siderSlected" });
-      });
-      dispatch({ type: "query" });
-      let tid;
-      window.onresize = () => {
-        clearTimeout(tid);
-        tid = setTimeout(() => {
-          dispatch({ type: "changeNavbar" });
-        }, 300);
-      };
-    }
+          }
+        });
+      }
+    },
   },
   effects: {
-    // 获取本人权限
+    // 获取远端本人权限
     *queryPermission ({ poayload = {} }, { put, call }) {
-      const { data } = yield call(getMyPermission, poayload);
-      window.localStorage.setItem('USER_TYPE', data + '')
-
+      try {
+        const { data } = yield call(getMyPermission, poayload);
+        yield put({ type: 'setPermissionData', payload: data });
+        const userRouter = yield call(validRouter, data);
+        yield put({ type: 'setUserRouter', payload: userRouter });
+        return userRouter
+      } catch (err) {
+        yield put({ type: 'logout' });
+        window.location.href = '/login'
+      }
+    },
+    // 检索本地本人权限
+    *queryLocalPermission ({ payload = {} }, { select }) {
+      const permission = yield select(({ app }) => app.permission);
+      return permission;
     },
     // 注销登录
     *logout ({ poayload = {} }, { put }) {
       window.localStorage.clear();
-      window.localStorage.clear();
       yield put(routerRedux.replace("/login"));
+      yield put({ type: 'setPermissionData', payload: '-1' });
       yield put({ type: "siderSlected" });
     },
     // 判断是否允许跳转页面
@@ -100,19 +96,31 @@ export default {
       const result = yield call(canJump, payload);
       if (!result && payload) {
         yield put(routerRedux.replace("/401"));
-      } else {
       }
     },
+    // 查找用户当前是否存在这条路由
+    *checkRouter ({ payload = {} }, { call, put, select }) {
+      const userRouter = yield select(({ app }) => app.userRouter);
+      if (!userRouter.includes(payload)) {
+
+        yield put(routerRedux.replace("/401"));
+      }
+    },
+
+    //选择侧边导航栏
     *siderSlected ({ poayload = {} }, { put, select }) {
       const locationPathname = yield select(({ app }) => app.locationPathname);
-      yield put({ type: "onSiderSlected", payload: { ...poayload, locationPathname } });
+      if (locationPathname !== '/') {
+        yield put({ type: "onSiderSlected", payload: { ...poayload, locationPathname } });
+      }
+
     }
   },
   reducers: {
     setPermissionData (state, { payload }) {
       return {
         ...state,
-        permissions: payload
+        permission: payload
       }
     },
     // 切换侧边菜单的展示状态
@@ -124,15 +132,34 @@ export default {
     },
     // 设置面包屑
     setBreadList (state, { payload }) {
+      const newBread = [...state.breadList, ...payload];
       return {
         ...state,
-        breadList: [...state.breadList, ...payload]
+        breadList: [...new Set(newBread.map(item => queryString.stringify(item)))].map(item => queryString.parse(item)),
       }
+    },
+    // 
+    changeListen (state, { payload }) {
+      if (!state.isListen) {
+        return {
+          ...state,
+          isListen: true
+        }
+      }
+    },
+
+    //设置当前用户可访问的路由
+    setUserRouter (state, { payload }) {
+      return {
+        ...state,
+        userRouter: payload
+      }
+
+
     },
 
     // 重置菜单面包屑
     resetBteadList (state) {
-      // console.log('state:',state)
       return {
         ...state,
         breadList: [{
@@ -144,7 +171,6 @@ export default {
 
     // 删除面包屑最后一位
     setLastBreadList (state, { payload }) {
-      console.log('state:', state)
       state.breadList.splice(state.breadList.length - 2, 2);
       return {
         ...state,
@@ -161,8 +187,7 @@ export default {
 
     // 选择侧边导航栏
     onSiderSlected (state, { payload }) {
-
-      const { locationPathname } = payload;
+      const { locationPathname } = state;
       let current = [],
         menu = {},
         type = locationPathname && '/' + locationPathname.split('/')[1],

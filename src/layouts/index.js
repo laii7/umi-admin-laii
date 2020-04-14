@@ -58,7 +58,7 @@ const BasicLayout = ({ children, dispatch, app, loading, location }) => {
       <Loader fullScreen spinning={loading.effects["app/query"]} />
       <Header {...headerProps} />
       <Sider />
-      <div className={!collapsed ? "content" : "collapse"} nihao={[]}>
+      <div className={!collapsed ? "content" : "collapse"}>
         {
           breadList &&
           <Breadcrumb style={{ marginTop: 3, marginBottom: 0 }}>

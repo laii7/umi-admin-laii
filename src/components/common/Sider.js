@@ -1,16 +1,16 @@
 import React, { useEffect } from "react";
-import { Menu, Icon } from "antd";
+import { Menu, Icon, Spin } from "antd";
 import common from "./common.less";
 import { menuConfig, config } from "@config";
 
-import { canShowMenu } from '@utils/utils';
+import { canShowMenu } from '@utils/permission';
 import { routerRedux, Link } from "dva/router";
 import { connect } from "dva";
 const SubMenu = Menu.SubMenu;
 
 let timer = null; //防抖
-const Sider = ({ dispatch, app }) => {
-  const { menu, collapsed } = app;
+const Sider = ({ dispatch, app, loading }) => {
+  const { menu, collapsed, permission } = app;
   const { selectedType, selectedItem } = menu;
 
   useEffect(() => {
@@ -44,17 +44,16 @@ const Sider = ({ dispatch, app }) => {
     }
   }, [dispatch])
 
-  
-
   const linkTo = () => {
     dispatch(routerRedux.push('/order/list'))
   }
 
-  const clickItem = ({ item, key, keyPath }) => {
-    dispatch({
-      type: "app/siderSlected"
-    });
-  };
+
+  // const clickItem = ({ item, key, keyPath }) => {
+  //   dispatch({
+  //     type: "app/siderSlected"
+  //   });
+  // };
 
   const menuCom = (type, typeItem) => {
     let com = undefined;
@@ -72,7 +71,7 @@ const Sider = ({ dispatch, app }) => {
               }
             >
               {typeItem.items.map(item => (
-                canShowMenu(item.id, 2) &&
+                canShowMenu(item.id, 2, permission) &&
                 <Menu.Item key={typeItem.key + item.path} className={common.item}>
                   <Link to={typeItem.key + item.path}>
                     {item.title}
@@ -84,7 +83,7 @@ const Sider = ({ dispatch, app }) => {
           break;
         case 2:
           com = (
-            <Menu.Item  key={typeItem.key}>
+            <Menu.Item key={typeItem.key}>
               <Link to={typeItem.path}>
                 <Icon type={typeItem.icon} />
                 <span>{typeItem.name}</span>
@@ -105,25 +104,32 @@ const Sider = ({ dispatch, app }) => {
       className={!collapsed ? common.sider : (common.sider + ' ' + common.siderCollapsed)}
     >
       <div onClick={linkTo} className={common.logo}>
-        <img alt="" src={config.logo} />
+        <img alt="" src={require('@assets/images/qb_icon.png')} />
         <p className={!collapsed ? '' : common.title}>{config.name}</p>
       </div>
-      <Menu
-        inlineCollapsed={collapsed}
-        // style={{ width: 210 }}
-        defaultOpenKeys={selectedType}
-        selectedKeys={selectedItem}
-        // defaultSelectedKeys={selectedItem}
-        mode="inline"
-        theme="dark"
-        onClick={clickItem}
-      >
-        {
-          menuConfig.map(typeItem => (
-            menuCom(canShowMenu(typeItem, 1), typeItem))
-          )
-        }
-      </Menu>
+      {
+        loading.effects['app/queryPermission'] ?
+          <div className={common.menu_loading}>
+            <Spin />
+          </div>
+          :
+          <Menu
+            inlineCollapsed={collapsed}
+            // style={{ width: 210 }}
+            defaultOpenKeys={selectedType}
+            selectedKeys={selectedItem}
+            // defaultSelectedKeys={selectedItem}
+            mode="inline"
+            theme="dark"
+            // onClick={clickItem}
+          >
+            {
+              menuConfig.map(typeItem => (
+                menuCom(canShowMenu(typeItem, 1, permission), typeItem))
+              )
+            }
+          </Menu>
+      }
     </div>
   )
 }

@@ -2,6 +2,7 @@
 // ref: https://umijs.org/config/
 
 import config from "./src/config/config";
+// import routes from './src/utils/routes';
 import path from 'path';
 export default {
   treeShaking: true,
@@ -11,11 +12,11 @@ export default {
     '@config': path.resolve(__dirname, 'src/config'),
     '@assets': require('path').resolve(__dirname, 'src/assets'),
     '@components': require('path').resolve(__dirname, 'src/components'),
+    '@operate': require('path').resolve(__dirname, 'src/components/permission/Operate'),
     '@services': require('path').resolve(__dirname, 'src/services'),
     '@models': require('path').resolve(__dirname, 'src/models'),
     '@pages': require('path').resolve(__dirname, 'src/pages'),
   },
-
   //di标识进入该页面需要的权限，如果不需要则设置id为[]
   routes: [
     {
@@ -61,8 +62,6 @@ export default {
         },
       ],
     },
-
-
   ],
   hash: true,
   plugins: [
@@ -75,8 +74,6 @@ export default {
       locale: {
         default: 'zh-CN',
       },
-
-
       dynamicImport: { webpackChunkName: true },
       title: config.name,
       dll: true,

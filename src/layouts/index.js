@@ -55,7 +55,7 @@ const BasicLayout = ({ children, dispatch, app, loading, location }) => {
 
   return (
     <div className="body-content">
-      <Loader fullScreen spinning={loading.effects["app/query"]} />
+      <Loader fullScreen spinning={loading.effects["app/queryPermission"]} />
       <Header {...headerProps} />
       <Sider />
       <div className={!collapsed ? "content" : "collapse"}>

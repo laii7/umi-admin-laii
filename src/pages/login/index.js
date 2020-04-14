@@ -56,7 +56,7 @@ const Login = ({
           <Button
             type="primary"
             onClick={handleOk}
-            loading={loading.effects.login}
+            loading={loading.effects['login/loginByPassword']}
           >
             登录
           </Button>

@@ -57,8 +57,6 @@ export default {
       yield put(routerRedux.push("/order/list"));
       yield put({ type: "app/siderSlected" });
 
-
-
     },
 
     //查询是否已在app做过全局路由监听
